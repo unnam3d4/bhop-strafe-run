@@ -16,116 +16,150 @@
   <div id="bootScreen" class="boot-screen">
     <div class="boot-logo"><b>B</b><span>BHOP: STRAFE RUN</span></div>
     <div class="boot-track"><i id="bootFill"></i></div>
-    <small id="bootText">ЗАГРУЗКА ИГРЫ</small>
+    <small id="bootText" data-i18n="boot.loading">ЗАГРУЗКА ИГРЫ</small>
   </div>
 
   <div id="rotateScreen" class="rotate-screen">
     <div class="rotate-icon">↻</div>
-    <b>ПОВЕРНИ УСТРОЙСТВО</b>
-    <span>Для игры нужен альбомный режим</span>
+    <b data-i18n="rotate.title">ПОВЕРНИ УСТРОЙСТВО</b>
+    <span data-i18n="rotate.desc">Для игры нужен альбомный режим</span>
   </div>
 
   <div id="hud" class="hidden-ui">
     <div class="hud-top">
       <div class="brand"><span class="brand-mark">B</span><span>BHOP</span><b>STRAFE RUN</b></div>
-      <div class="time-card"><small>ВРЕМЯ</small><strong id="timer">00:00.000</strong></div>
-      <div class="best-card"><small>РЕКОРД</small><strong id="best">--:--.---</strong></div>
+      <div class="time-card"><small data-i18n="hud.time">ВРЕМЯ</small><strong id="timer">00:00.000</strong></div>
+      <div class="best-card"><small data-i18n="hud.best">РЕКОРД</small><strong id="best">--:--.---</strong></div>
     </div>
-    <div class="checkpoint"><span id="cpLabel">СТАРТ</span><div class="cpbar"><i id="cpFill"></i></div></div>
+    <div class="checkpoint"><span id="cpLabel" data-i18n="hud.start">СТАРТ</span><div class="cpbar"><i id="cpFill"></i></div></div>
     <div class="crosshair"><i></i><b></b></div>
     <div class="speedbox">
       <strong id="speed">0</strong><span>u/s</span>
-      <small id="speedHint">SPACE + A/D · держи ритм</small>
+      <small id="speedHint" data-i18n="hud.hint">SPACE + A/D · держи ритм</small>
     </div>
-    <button id="restartBtn" class="icon-btn" aria-label="Рестарт" title="Рестарт (R)">↻</button>
-    <button id="pauseBtn" class="icon-btn second" aria-label="Пауза" title="Пауза (P)">Ⅱ</button>
+    <button id="restartBtn" class="icon-btn" aria-label="Restart" title="Restart">↻</button>
+    <button id="pauseBtn" class="icon-btn second" aria-label="Pause" title="Pause">Ⅱ</button>
   </div>
 
   <div id="startScreen" class="overlay">
     <div class="menu-shell">
       <section class="menu-main">
         <div class="menu-brand"><span>B</span><b>BHOP: STRAFE RUN</b></div>
-        <div class="eyebrow">СКОРОСТНАЯ ТРАССА · УРОВЕНЬ 01</div>
-        <h1>ДЕРЖИ<br><em>СКОРОСТЬ</em></h1>
-        <p class="lead">Разгоняйся прыжками, управляй траекторией в воздухе и доберись до финиша быстрее своего рекорда.</p>
+        <div class="eyebrow" data-i18n="menu.eyebrow">СКОРОСТНАЯ ТРАССА · УРОВЕНЬ 01</div>
+        <h1><span data-i18n="menu.title1">ДЕРЖИ</span><br><em data-i18n="menu.title2">СКОРОСТЬ</em></h1>
+        <p class="lead" data-i18n="menu.lead">Разгоняйся прыжками, управляй траекторией в воздухе и доберись до финиша быстрее своего рекорда.</p>
 
         <div class="menu-stats">
-          <div><small>КАРТА</small><strong>ТРЕНИРОВКА 01</strong><span>обучение</span></div>
-          <div><small>РЕКОРД</small><strong id="menuBest">--:--.---</strong><span>лучшее время</span></div>
-          <div><small>ЗАБЕГИ</small><strong id="menuRuns">0</strong><span>завершено</span></div>
+          <div><small data-i18n="menu.map">КАРТА</small><strong data-i18n="menu.training">ТРЕНИРОВКА 01</strong><span data-i18n="menu.tutorial">обучение</span></div>
+          <div><small data-i18n="menu.record">РЕКОРД</small><strong id="menuBest">--:--.---</strong><span data-i18n="menu.besttime">лучшее время</span></div>
+          <div><small data-i18n="menu.runs">ЗАБЕГИ</small><strong id="menuRuns">0</strong><span data-i18n="menu.completed">завершено</span></div>
         </div>
 
-        <button id="playBtn" class="primary big-play">НАЧАТЬ ЗАБЕГ <span>→</span></button>
-        <button id="settingsBtn" class="ghost menu-settings">НАСТРОЙКИ</button>
-        <div class="save-note"><i></i><span id="saveStatus">Прогресс сохраняется автоматически</span></div>
+        <button id="playBtn" class="primary big-play"><span data-i18n="menu.play">НАЧАТЬ ЗАБЕГ</span><span>→</span></button>
+        <div class="menu-secondary">
+          <button id="levelsBtn" class="ghost"><span data-i18n="menu.levels">УРОВНИ</span><b id="levelProgressBadge">1/30</b></button>
+          <button id="settingsBtn" class="ghost" data-i18n="menu.settings">НАСТРОЙКИ</button>
+        </div>
+        <div class="save-note"><i></i><span id="saveStatus" data-i18n="menu.save.local">Прогресс сохраняется автоматически</span></div>
       </section>
 
       <aside class="menu-side">
         <div class="level-card">
           <span class="level-no">01</span>
-          <div><small>ТЕКУЩИЙ УРОВЕНЬ</small><b>ТРЕНИРОВКА</b><p>Широкая трасса для освоения bunny hop и air-strafe.</p></div>
+          <div><small data-i18n="menu.current">ТЕКУЩИЙ УРОВЕНЬ</small><b data-i18n="menu.trainingrun">ТРЕНИРОВКА</b><p data-i18n="menu.leveldesc">Широкая трасса для освоения bunny hop и air-strafe.</p></div>
         </div>
-        <div class="controls-title">УПРАВЛЕНИЕ</div>
+        <div class="controls-title" data-i18n="menu.controls">УПРАВЛЕНИЕ</div>
         <div class="controls">
-          <div><kbd>W A S D</kbd><span>движение</span></div>
-          <div><kbd>SPACE</kbd><span>прыжок / bhop</span></div>
-          <div><kbd>МЫШЬ</kbd><span>камера / strafe</span></div>
-          <div><kbd>R</kbd><span>рестарт</span></div>
+          <div><kbd>W A S D</kbd><span data-i18n="control.move">движение</span></div>
+          <div><kbd>SPACE</kbd><span data-i18n="control.jump">прыжок / bhop</span></div>
+          <div><kbd>МЫШЬ</kbd><span data-i18n="control.camera">камера / strafe</span></div>
+          <div><kbd>R</kbd><span data-i18n="control.restart">рестарт</span></div>
         </div>
-        <div class="tip-card"><b>СОВЕТ</b><span>Не отпускай SPACE. В воздухе мягко веди мышь в сторону нажатой A или D.</span></div>
+        <div class="tip-card"><b data-i18n="menu.tip">СОВЕТ</b><span data-i18n="menu.tiptext">Не отпускай SPACE. В воздухе мягко веди мышь в сторону нажатой A или D.</span></div>
       </aside>
+    </div>
+  </div>
+
+  <div id="levelsScreen" class="overlay">
+    <div class="levels-panel">
+      <div class="levels-header">
+        <div>
+          <div class="eyebrow" data-i18n="levels.subtitle">КАРЬЕРА BHOP</div>
+          <h2 data-i18n="levels.title">УРОВНИ</h2>
+          <p id="levelsProgressText">Открыто 1 из 30</p>
+        </div>
+        <button id="levelsCloseBtn" class="icon-close" aria-label="Close">×</button>
+      </div>
+      <div id="levelsGrid" class="levels-grid"></div>
+      <button id="levelsBackBtn" class="ghost levels-back" data-i18n="levels.back">НАЗАД</button>
     </div>
   </div>
 
   <div id="settingsScreen" class="overlay">
     <div class="panel compact settings-panel">
-      <div class="eyebrow">НАСТРОЙКИ</div>
-      <h2>Управление</h2>
+      <div class="eyebrow" data-i18n="settings.title">НАСТРОЙКИ</div>
+      <h2 data-i18n="settings.controls">Управление</h2>
+
       <label class="setting-row">
-        <span><b>Чувствительность мыши</b><small>Скорость поворота камеры</small></span>
+        <span><b data-i18n="settings.sensitivity">Чувствительность мыши</b><small data-i18n="settings.sensitivityDesc">Скорость поворота камеры</small></span>
         <output id="sensitivityValue">1.00×</output>
       </label>
       <input id="sensitivityRange" type="range" min="0.55" max="1.75" step="0.05" value="1" />
+
       <label class="setting-toggle">
-        <span><b>Инверсия Y</b><small>Вертикальное движение камеры</small></span>
+        <span><b data-i18n="settings.invert">Инверсия Y</b><small data-i18n="settings.invertDesc">Вертикальное движение камеры</small></span>
         <input id="invertYToggle" type="checkbox" />
       </label>
-      <button id="settingsCloseBtn" class="primary">ГОТОВО</button>
+
+      <label class="setting-toggle">
+        <span><b data-i18n="settings.sound">Звук</b><small data-i18n="settings.soundDesc">Эффекты интерфейса и геймплея</small></span>
+        <input id="soundToggle" type="checkbox" checked />
+      </label>
+
+      <div class="setting-language">
+        <span><b data-i18n="settings.language">Язык</b><small data-i18n="settings.languageDesc">Язык интерфейса игры</small></span>
+        <div class="language-switch">
+          <button id="langRuBtn" type="button" data-lang="ru">Русский</button>
+          <button id="langEnBtn" type="button" data-lang="en">English</button>
+        </div>
+      </div>
+
+      <button id="settingsCloseBtn" class="primary" data-i18n="settings.done">ГОТОВО</button>
     </div>
   </div>
 
   <div id="pauseScreen" class="overlay">
     <div class="panel compact">
-      <div class="eyebrow">ПАУЗА</div>
-      <h2>Забег остановлен</h2>
-      <button id="resumeBtn" class="primary">ПРОДОЛЖИТЬ</button>
-      <button id="pauseRestartBtn" class="ghost">НАЧАТЬ ЗАНОВО</button>
-      <button id="pauseSettingsBtn" class="ghost">НАСТРОЙКИ</button>
-      <button id="pauseMenuBtn" class="ghost quiet">В ГЛАВНОЕ МЕНЮ</button>
+      <div class="eyebrow" data-i18n="pause.title">ПАУЗА</div>
+      <h2 data-i18n="pause.desc">Забег остановлен</h2>
+      <button id="resumeBtn" class="primary" data-i18n="pause.resume">ПРОДОЛЖИТЬ</button>
+      <button id="pauseRestartBtn" class="ghost" data-i18n="pause.restart">НАЧАТЬ ЗАНОВО</button>
+      <button id="pauseSettingsBtn" class="ghost" data-i18n="menu.settings">НАСТРОЙКИ</button>
+      <button id="pauseMenuBtn" class="ghost quiet" data-i18n="pause.menu">В ГЛАВНОЕ МЕНЮ</button>
     </div>
   </div>
 
   <div id="deathScreen" class="overlay">
     <div class="panel compact result-panel">
-      <div class="eyebrow danger-label">СРЫВ</div>
-      <h2>Трасса не прощает ошибок</h2>
-      <p class="result-copy">Начни забег заново или продолжи с последней контрольной точки после добровольного просмотра рекламы.</p>
-      <button id="rewardContinueBtn" class="rewarded hidden">ПРОДОЛЖИТЬ С ЧЕКПОИНТА <span>РЕКЛАМА</span></button>
-      <button id="deathRestartBtn" class="primary">НАЧАТЬ ЗАНОВО</button>
-      <button id="deathMenuBtn" class="ghost">В ГЛАВНОЕ МЕНЮ</button>
-      <small id="rewardNote" class="reward-note hidden">Продолжение выдаётся только после успешного просмотра рекламы.</small>
+      <div class="eyebrow danger-label" data-i18n="death.title">СРЫВ</div>
+      <h2 data-i18n="death.heading">Трасса не прощает ошибок</h2>
+      <p class="result-copy" data-i18n="death.copy">Начни забег заново или продолжи с последней контрольной точки после добровольного просмотра рекламы.</p>
+      <button id="rewardContinueBtn" class="rewarded hidden"><span data-i18n="death.reward">ПРОДОЛЖИТЬ С ЧЕКПОИНТА</span><span data-i18n="death.ad">РЕКЛАМА</span></button>
+      <button id="deathRestartBtn" class="primary" data-i18n="pause.restart">НАЧАТЬ ЗАНОВО</button>
+      <button id="deathMenuBtn" class="ghost" data-i18n="pause.menu">В ГЛАВНОЕ МЕНЮ</button>
+      <small id="rewardNote" class="reward-note hidden" data-i18n="death.note">Продолжение выдаётся только после успешного просмотра рекламы.</small>
     </div>
   </div>
 
   <div id="finishScreen" class="overlay">
     <div class="panel compact finish result-panel">
-      <div class="eyebrow">ФИНИШ</div>
-      <h2 id="finishTitle">Трасса пройдена</h2>
+      <div class="eyebrow" data-i18n="finish.title">ФИНИШ</div>
+      <h2 id="finishTitle" data-i18n="finish.heading">Трасса пройдена</h2>
       <div class="finish-time" id="finishTime">00:00.000</div>
-      <div id="recordBadge" class="record hidden">НОВЫЙ РЕКОРД</div>
+      <div id="recordBadge" class="record hidden" data-i18n="finish.record">НОВЫЙ РЕКОРД</div>
       <div class="finish-actions">
-        <button id="againBtn" class="primary">ЕЩЁ РАЗ</button>
-        <button id="finishMenuBtn" class="ghost">В ГЛАВНОЕ МЕНЮ</button>
+        <button id="againBtn" class="primary" data-i18n="finish.again">ЕЩЁ РАЗ</button>
+        <button id="finishMenuBtn" class="ghost" data-i18n="pause.menu">В ГЛАВНОЕ МЕНЮ</button>
       </div>
     </div>
   </div>
@@ -133,12 +167,15 @@
   <div id="mobileControls" aria-hidden="true">
     <div id="stickBase" class="stick"><i id="stickKnob"></i></div>
     <div id="lookZone"></div>
-    <button id="jumpBtn">ПРЫЖОК</button>
+    <button id="jumpBtn">JUMP</button>
   </div>
 
   <div id="fatal" class="fatal hidden"></div>
 
   <script src="settings.js"></script>
+  <script src="i18n.js"></script>
+  <script src="sound.js"></script>
+  <script src="levels.js"></script>
   <script src="yandex.js"></script>
   <script src="game.js"></script>
 </body>
