@@ -5,6 +5,7 @@
   const canvas = $('#game');
   const gl = canvas.getContext('webgl', { antialias: true, alpha: false, powerPreference: 'high-performance' });
   const fatal = $('#fatal');
+  const bootScreen = $('#bootScreen'), bootFill = $('#bootFill'), bootText = $('#bootText');
   if (!gl) {
     fatal.classList.remove('hidden');
     fatal.textContent = 'WebGL недоступен. Включите аппаратное ускорение браузера.';
@@ -17,6 +18,9 @@
   const finishTimeEl = $('#finishTime'), recordBadge = $('#recordBadge');
   const playBtn = $('#playBtn'), resumeBtn = $('#resumeBtn'), againBtn = $('#againBtn');
   const restartBtn = $('#restartBtn'), pauseBtn = $('#pauseBtn'), pauseRestartBtn = $('#pauseRestartBtn');
+  const settingsScreen = $('#settingsScreen'), settingsBtn = $('#settingsBtn'), pauseSettingsBtn = $('#pauseSettingsBtn');
+  const settingsCloseBtn = $('#settingsCloseBtn'), sensitivityRange = $('#sensitivityRange');
+  const sensitivityValue = $('#sensitivityValue'), invertYToggle = $('#invertYToggle');
 
   const isTouch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
 
@@ -171,7 +175,10 @@
   const keys = Object.create(null);
   let paused = true, started = false, finished = false, runStarted = false;
   let runStartPerf = 0, accumulatedPause = 0, pauseStarted = 0, bestMs = null;
-  let checkpoint = 0, finishCooldown = 0, readySent = false;
+  let checkpoint = 0, finishCooldown = 0;
+  let progress = { bestTimeMs: null, completedRuns: 0, unlockedLevel: 1 };
+  let settings = GameSettings.get();
+  let settingsReturn = 'menu';
 
   function resetPlayer(startNow=false){
     player.x=spawn.x;player.y=spawn.y;player.z=spawn.z;player.vx=player.vy=player.vz=0;player.yaw=spawn.yaw;player.pitch=0;player.onGround=false;
@@ -290,7 +297,6 @@
     gl.uniform3fv(loc.uCamPos,eye);gl.uniform3fv(loc.uCamForward,forward);gl.uniform3fv(loc.uCamRight,right);gl.uniform3fv(loc.uCamUp,up);
     // Farther objects first isn't necessary with depth testing, but drawing course before decoration keeps debugging predictable.
     for(const b of boxes)drawBox(b);
-    if(!readySent){readySent=true;YandexBridge.gameReady();}
   }
 
   // ---------- Run state ----------
@@ -302,8 +308,21 @@
   async function finishRun(){
     finished=true;paused=true;YandexBridge.gameplayStop();
     const ms=currentRunMs();timerEl.textContent=formatTime(ms);finishTimeEl.textContent=formatTime(ms);
-    let isRecord=!bestMs||ms<bestMs;
-    if(isRecord){bestMs=ms;bestEl.textContent=formatTime(bestMs);recordBadge.classList.remove('hidden');await YandexBridge.saveBest(ms);} else recordBadge.classList.add('hidden');
+    const isRecord=!bestMs||ms<bestMs;
+    if(isRecord){
+      bestMs=ms;
+      bestEl.textContent=formatTime(bestMs);
+      recordBadge.classList.remove('hidden');
+    } else {
+      recordBadge.classList.add('hidden');
+    }
+    progress.completedRuns=(Number(progress.completedRuns)||0)+1;
+    progress.bestTimeMs=bestMs;
+    await YandexBridge.saveProgress({
+      bestTimeMs: bestMs || 0,
+      completedRuns: progress.completedRuns,
+      unlockedLevel: Math.max(1, Number(progress.unlockedLevel)||1)
+    });
     finishScreen.classList.add('active');
     if(document.pointerLockElement===canvas)document.exitPointerLock();
   }
@@ -317,12 +336,54 @@
     if(!isTouch)canvas.requestPointerLock?.();
   }
   function beginGame(){
-    startScreen.classList.remove('active');finishScreen.classList.remove('active');pauseScreen.classList.remove('active');resetPlayer(true);
+    startScreen.classList.remove('active');finishScreen.classList.remove('active');pauseScreen.classList.remove('active');settingsScreen.classList.remove('active');resetPlayer(true);
     if(!isTouch)canvas.requestPointerLock?.();
   }
 
-  playBtn.addEventListener('click',beginGame);resumeBtn.addEventListener('click',resumeGame);againBtn.addEventListener('click',beginGame);
-  restartBtn.addEventListener('click',()=>resetPlayer(true));pauseBtn.addEventListener('click',()=>pauseGame());pauseRestartBtn.addEventListener('click',beginGame);
+  function syncSettingsUI(){
+    settings = GameSettings.get();
+    sensitivityRange.value=String(settings.sensitivity);
+    sensitivityValue.value=settings.sensitivity.toFixed(2)+'×';
+    sensitivityValue.textContent=sensitivityValue.value;
+    invertYToggle.checked=!!settings.invertY;
+  }
+  function openSettings(from='menu'){
+    settingsReturn=from;
+    syncSettingsUI();
+    startScreen.classList.remove('active');
+    pauseScreen.classList.remove('active');
+    settingsScreen.classList.add('active');
+    if(started)YandexBridge.gameplayStop();
+  }
+  function closeSettings(){
+    settingsScreen.classList.remove('active');
+    settings=GameSettings.get();
+    if(settingsReturn==='pause'&&started&&!finished) pauseScreen.classList.add('active');
+    else startScreen.classList.add('active');
+  }
+
+  playBtn.addEventListener('click',beginGame);
+  resumeBtn.addEventListener('click',resumeGame);
+  againBtn.addEventListener('click',async()=>{
+    finishScreen.classList.remove('active');
+    if(progress.completedRuns>0 && progress.completedRuns%3===0) await YandexBridge.showFullscreen();
+    beginGame();
+  });
+  restartBtn.addEventListener('click',()=>resetPlayer(true));
+  pauseBtn.addEventListener('click',()=>pauseGame());
+  pauseRestartBtn.addEventListener('click',beginGame);
+  settingsBtn.addEventListener('click',()=>openSettings('menu'));
+  pauseSettingsBtn.addEventListener('click',()=>openSettings('pause'));
+  settingsCloseBtn.addEventListener('click',closeSettings);
+  sensitivityRange.addEventListener('input',()=>{
+    GameSettings.set({sensitivity:Number(sensitivityRange.value)});
+    syncSettingsUI();
+  });
+  invertYToggle.addEventListener('change',()=>{
+    GameSettings.set({invertY:invertYToggle.checked});
+    syncSettingsUI();
+  });
+  addEventListener('bhop-settings-changed',()=>{settings=GameSettings.get();});
 
   document.addEventListener('keydown',(e)=>{
     keys[e.code]=true;
@@ -334,7 +395,8 @@
   document.addEventListener('keyup',(e)=>{keys[e.code]=false;});
   document.addEventListener('mousemove',(e)=>{
     if(document.pointerLockElement!==canvas||paused)return;
-    player.yaw+=e.movementX*.00225;player.pitch-=e.movementY*.0019;player.pitch=Math.max(-1.18,Math.min(1.18,player.pitch));
+    const sens=settings.sensitivity||1, ySign=settings.invertY?1:-1;
+    player.yaw+=e.movementX*.00225*sens;player.pitch+=e.movementY*.0019*sens*ySign;player.pitch=Math.max(-1.18,Math.min(1.18,player.pitch));
   });
   document.addEventListener('pointerlockchange',()=>{
     if(!isTouch&&started&&!finished&&document.pointerLockElement!==canvas&&!paused)setTimeout(()=>pauseGame(),0);
@@ -353,7 +415,7 @@
   const endStick=e=>{if(e.pointerId!==stickPointer)return;stickPointer=null;mobileStick.x=mobileStick.y=0;stickKnob.style.transform='translate(0,0)'};
   stickBase.addEventListener('pointerup',endStick);stickBase.addEventListener('pointercancel',endStick);
   lookZone.addEventListener('pointerdown',e=>{lookPointer=e.pointerId;lookX=e.clientX;lookY=e.clientY;lookZone.setPointerCapture(e.pointerId)});
-  lookZone.addEventListener('pointermove',e=>{if(e.pointerId!==lookPointer||paused)return;const dx=e.clientX-lookX,dy=e.clientY-lookY;lookX=e.clientX;lookY=e.clientY;player.yaw+=dx*.005;player.pitch-=dy*.0042;player.pitch=Math.max(-1.12,Math.min(1.12,player.pitch));});
+  lookZone.addEventListener('pointermove',e=>{if(e.pointerId!==lookPointer||paused)return;const dx=e.clientX-lookX,dy=e.clientY-lookY;lookX=e.clientX;lookY=e.clientY;const sens=settings.sensitivity||1,ySign=settings.invertY?1:-1;player.yaw+=dx*.005*sens;player.pitch+=dy*.0042*sens*ySign;player.pitch=Math.max(-1.12,Math.min(1.12,player.pitch));});
   const endLook=e=>{if(e.pointerId===lookPointer)lookPointer=null};lookZone.addEventListener('pointerup',endLook);lookZone.addEventListener('pointercancel',endLook);
   jumpBtn.addEventListener('pointerdown',e=>{mobileJump=true;jumpBtn.setPointerCapture(e.pointerId)});jumpBtn.addEventListener('pointerup',()=>mobileJump=false);jumpBtn.addEventListener('pointercancel',()=>mobileJump=false);
 
@@ -366,11 +428,22 @@
   }
 
   async function boot(){
+    bootFill.style.width='18%';bootText.textContent='ИНИЦИАЛИЗАЦИЯ';
     await YandexBridge.init();
-    bestMs=await YandexBridge.loadBest();
+    bootFill.style.width='52%';bootText.textContent='ЗАГРУЗКА ПРОГРЕССА';
+    progress=await YandexBridge.loadProgress();
+    bestMs=progress.bestTimeMs;
     bestEl.textContent=formatTime(bestMs);
+    syncSettingsUI();
     resetPlayer(false);
+    bootFill.style.width='82%';bootText.textContent='ПОДГОТОВКА УРОВНЯ';
     requestAnimationFrame(loop);
+    await new Promise(resolve=>requestAnimationFrame(resolve));
+    startScreen.classList.add('active');
+    bootFill.style.width='100%';bootText.textContent='ГОТОВО';
+    bootScreen.classList.add('done');
+    await new Promise(resolve=>setTimeout(resolve,300));
+    await YandexBridge.gameReady();
   }
   boot().catch(err=>{console.error(err);fatal.classList.remove('hidden');fatal.textContent=String(err?.stack||err)});
 })();
