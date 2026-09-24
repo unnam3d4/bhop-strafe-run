@@ -403,7 +403,8 @@
     if(!isTouch)return;
     try{
       if(!document.fullscreenElement)document.documentElement.requestFullscreen?.().catch(()=>{});
-      screen.orientation?.lock?.('landscape').catch(()=>{});
+      const orientationLock=screen.orientation?.lock?.('landscape');
+      orientationLock?.catch?.(()=>{});
     }catch(_){}
   }
   async function beginGame(){
@@ -502,6 +503,15 @@
     }
   });
   window.addEventListener('blur',()=>pauseGame(false));
+  function handleOrientation(){
+    if(isTouch && innerHeight>innerWidth && started&&!finished&&!paused) pauseGame(false);
+    if(isTouch && innerWidth>=innerHeight && started&&!finished&&paused&&!settingsScreen.classList.contains('active')&&!deathScreen.classList.contains('active')){
+      pauseScreen.classList.add('active');
+      YandexBridge.showSticky();
+    }
+  }
+  window.addEventListener('orientationchange',handleOrientation);
+  window.addEventListener('resize',handleOrientation);
 
   // ---------- Mobile controls ----------
   const stickBase=$('#stickBase'),stickKnob=$('#stickKnob'),lookZone=$('#lookZone'),jumpBtn=$('#jumpBtn');
