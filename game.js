@@ -118,15 +118,20 @@
   const fog = [0.035,0.055,0.078];
   gl.uniform1f(loc.uNear,.05); gl.uniform1f(loc.uFar,140); gl.uniform3fv(loc.uFog,fog); gl.uniform1f(loc.uTanHalf,Math.tan(76*Math.PI/360));
 
+  let resizeDirty=true;
   function resize(){
-    // Mobile browsers often become fill-rate bound on high-DPI screens.
-    // 1.0 DPR keeps gameplay responsive; desktop keeps a modest quality bump.
-    const dpr = Math.min(devicePixelRatio || 1, isTouch ? 1 : 1.5);
+    if(!resizeDirty)return;
+    resizeDirty=false;
+    // On mobile keep a little headroom for stable frame pacing.
+    const renderScale=isTouch?.82:1;
+    const dpr = Math.min(devicePixelRatio || 1, isTouch ? renderScale : 1.5);
     const w = Math.max(1, Math.floor(innerWidth*dpr)), h = Math.max(1, Math.floor(innerHeight*dpr));
     if (canvas.width!==w || canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}
     gl.uniform1f(loc.uAspect,w/h);
   }
-  addEventListener('resize',resize); resize();
+  addEventListener('resize',()=>{resizeDirty=true;});
+  document.addEventListener('fullscreenchange',()=>{resizeDirty=true;});
+  resize();
 
   const COLOR = {
     concrete:[0.26,0.29,0.34], dark:[0.12,0.15,0.18], acid:[0.68,0.85,0.08], cyan:[0.08,0.52,0.65], red:[0.74,0.12,0.19], metal:[0.38,0.43,0.48], black:[0.035,0.045,0.058]
@@ -172,10 +177,32 @@
   addBox(-4.8,4.2,4.5,.6,6,1,'acid',false); addBox(4.8,4.2,4.5,.6,6,1,'acid',false); addBox(0,7.0,4.5,10.2,.5,1,'acid',false);
   addBox(-4.8,6.0,111,.6,8,1,'acid',false); addBox(4.8,6.0,111,.6,8,1,'acid',false); addBox(0,9.8,111,10.2,.5,1,'acid',false);
 
-  function drawBox(b){
-    gl.uniform3f(loc.uCenter,b.x,b.y,b.z); gl.uniform3f(loc.uSize,b.sx,b.sy,b.sz); gl.uniform3fv(loc.uColor,b.color);
-    gl.drawArrays(gl.TRIANGLES,0,36);
+  // Batch static geometry by color. The whole level now renders in only a few
+  // draw calls instead of one draw call per box.
+  function buildWorldBatches(){
+    const groups=new Map();
+    for(const b of boxes){
+      if(isTouch && b.tag==='deco')continue;
+      const key=b.color.join(',');
+      if(!groups.has(key))groups.set(key,{color:b.color,data:[]});
+      const out=groups.get(key).data;
+      for(let i=0;i<verts.length;i+=6){
+        out.push(
+          verts[i]*b.sx+b.x,
+          verts[i+1]*b.sy+b.y,
+          verts[i+2]*b.sz+b.z,
+          verts[i+3],verts[i+4],verts[i+5]
+        );
+      }
+    }
+    return [...groups.values()].map(group=>{
+      const buffer=gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
+      gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(group.data),gl.STATIC_DRAW);
+      return {buffer,color:group.color,count:group.data.length/6};
+    });
   }
+  const worldBatches=buildWorldBatches();
 
   // ---------- Player / physics ----------
   const player = {x:0,y:1.05,z:-3.8,vx:0,vy:0,vz:0,yaw:0,pitch:0,onGround:false,r:.34,h:1.72};
@@ -215,13 +242,16 @@
     const acc=Math.min(accel*wishSpeed*dt,add); player.vx+=acc*wx;player.vz+=acc*wz;
   }
 
+  const wishResult={x:0,z:0,m:0};
   function wishDir(){
     let f=(keys.KeyW?1:0)-(keys.KeyS?1:0), s=(keys.KeyD?1:0)-(keys.KeyA?1:0);
     if(isTouch){f=Math.max(-1,Math.min(1,-mobileStick.y));s=Math.max(-1,Math.min(1,mobileStick.x));}
     let len=Math.hypot(f,s); if(len>1){f/=len;s/=len;len=1;}
     const sy=Math.sin(player.yaw), cy=Math.cos(player.yaw);
-    const wx=sy*f+cy*s, wz=cy*f-sy*s;
-    return {x:wx,z:wz,m:len};
+    wishResult.x=sy*f+cy*s;
+    wishResult.z=cy*f-sy*s;
+    wishResult.m=len;
+    return wishResult;
   }
 
   // Course geometry is static. Cache colliders once instead of allocating
@@ -273,7 +303,7 @@
     if(player.onGround){
       if(jump){
         player.vy=8.55; player.onGround=false; // Slightly higher tutorial jump for forgiving Level 1 landings.
-        GameSound.jump();
+        if(!isTouch)GameSound.jump();
         if(wish.m>0) accelerate(wish.x,wish.z,7.2,16,dt);
       } else {
         applyFriction(dt);
@@ -315,17 +345,21 @@
   function render(t){
     resize();
     const hs=horizontalSpeed(); const bob=(player.onGround&&hs>.5)?Math.sin(t*.012*Math.min(1.7,hs/5))*Math.min(.045,hs*.0035):0;
-    const eye=[player.x,player.y+1.55+bob,player.z];
+    const eyeX=player.x,eyeY=player.y+1.55+bob,eyeZ=player.z;
     const cp=Math.cos(player.pitch), sp=Math.sin(player.pitch), sy=Math.sin(player.yaw), cy=Math.cos(player.yaw);
-    const forward=[sy*cp,sp,cy*cp];
-    let right=[cy,0,-sy];
-    let up=[-sy*sp,cp,-cy*sp];
-    gl.clearColor(...fog,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
-    gl.uniform3fv(loc.uCamPos,eye);gl.uniform3fv(loc.uCamForward,forward);gl.uniform3fv(loc.uCamRight,right);gl.uniform3fv(loc.uCamUp,up);
-    // Decorative towers are expensive draw calls on phones and are not gameplay geometry.
-    for(const b of boxes){
-      if(isTouch && b.tag==='deco')continue;
-      drawBox(b);
+    gl.clearColor(fog[0],fog[1],fog[2],1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+    gl.uniform3f(loc.uCamPos,eyeX,eyeY,eyeZ);
+    gl.uniform3f(loc.uCamForward,sy*cp,sp,cy*cp);
+    gl.uniform3f(loc.uCamRight,cy,0,-sy);
+    gl.uniform3f(loc.uCamUp,-sy*sp,cp,-cy*sp);
+    gl.uniform3f(loc.uCenter,0,0,0);
+    gl.uniform3f(loc.uSize,1,1,1);
+    for(const batch of worldBatches){
+      gl.bindBuffer(gl.ARRAY_BUFFER,batch.buffer);
+      gl.vertexAttribPointer(loc.aPos,3,gl.FLOAT,false,24,0);
+      gl.vertexAttribPointer(loc.aNormal,3,gl.FLOAT,false,24,12);
+      gl.uniform3fv(loc.uColor,batch.color);
+      gl.drawArrays(gl.TRIANGLES,0,batch.count);
     }
   }
 
@@ -604,14 +638,19 @@
 
   // ---------- Mobile controls ----------
   const stickBase=$('#stickBase'),stickKnob=$('#stickKnob'),lookZone=$('#lookZone'),jumpBtn=$('#jumpBtn');
-  const mobileStick={x:0,y:0}; let stickPointer=null, lookPointer=null, lookX=0,lookY=0,mobileJump=false;
+  const mobileStick={x:0,y:0}; let stickPointer=null, lookPointer=null, lookX=0,lookY=0,mobileJump=false,stickGeom=null;
   function updateStick(e){
-    const r=stickBase.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy;const max=r.width*.33,d=Math.hypot(dx,dy);if(d>max){dx*=max/d;dy*=max/d;}
-    mobileStick.x=dx/max;mobileStick.y=dy/max;stickKnob.style.transform=`translate(${dx}px,${dy}px)`;
+    const g=stickGeom;if(!g)return;
+    let dx=e.clientX-g.cx,dy=e.clientY-g.cy;const d=Math.hypot(dx,dy);if(d>g.max){dx*=g.max/d;dy*=g.max/d;}
+    mobileStick.x=dx/g.max;mobileStick.y=dy/g.max;stickKnob.style.transform=`translate3d(${dx}px,${dy}px,0)`;
   }
-  stickBase.addEventListener('pointerdown',e=>{stickPointer=e.pointerId;stickBase.setPointerCapture(e.pointerId);updateStick(e)});
+  stickBase.addEventListener('pointerdown',e=>{
+    const r=stickBase.getBoundingClientRect();
+    stickGeom={cx:r.left+r.width/2,cy:r.top+r.height/2,max:r.width*.33};
+    stickPointer=e.pointerId;stickBase.setPointerCapture(e.pointerId);updateStick(e)
+  });
   stickBase.addEventListener('pointermove',e=>{if(e.pointerId===stickPointer)updateStick(e)});
-  const endStick=e=>{if(e.pointerId!==stickPointer)return;stickPointer=null;mobileStick.x=mobileStick.y=0;stickKnob.style.transform='translate(0,0)'};
+  const endStick=e=>{if(e.pointerId!==stickPointer)return;stickPointer=null;stickGeom=null;mobileStick.x=mobileStick.y=0;stickKnob.style.transform='translate3d(0,0,0)'};
   stickBase.addEventListener('pointerup',endStick);stickBase.addEventListener('pointercancel',endStick);
   lookZone.addEventListener('pointerdown',e=>{lookPointer=e.pointerId;lookX=e.clientX;lookY=e.clientY;lookZone.setPointerCapture(e.pointerId)});
   lookZone.addEventListener('pointermove',e=>{if(e.pointerId!==lookPointer||paused)return;const dx=e.clientX-lookX,dy=e.clientY-lookY;lookX=e.clientX;lookY=e.clientY;const sens=settings.sensitivity||1,ySign=settings.invertY?1:-1;player.yaw+=dx*.005*sens;player.pitch+=dy*.0042*sens*ySign;player.pitch=Math.max(-1.12,Math.min(1.12,player.pitch));});
