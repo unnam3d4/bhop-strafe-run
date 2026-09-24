@@ -181,11 +181,16 @@
     }
   }
 
+  function getPlatformLanguage() {
+    if (sdkReady) return ysdk?.environment?.i18n?.lang || 'en';
+    return navigator.language || navigator.userLanguage || 'en';
+  }
+
   function isYandex() { return sdkReady; }
 
   window.YandexBridge = {
     init, gameReady, gameplayStart, gameplayStop,
     loadProgress, saveProgress, loadBest, saveBest,
-    showFullscreen, showRewarded, showSticky, hideSticky, isYandex
+    showFullscreen, showRewarded, showSticky, hideSticky, getPlatformLanguage, isYandex
   };
 })();
