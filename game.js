@@ -350,7 +350,7 @@
       tile.className='level-tile'+(level.id===1?' active':'');
       tile.disabled=!playable;
       tile.dataset.level=String(level.id);
-      const state=playable?'PLAY':(level.implemented?I18n.t('levels.locked'):I18n.t('levels.soon'));
+      const state=playable?I18n.t('levels.play'):(level.implemented?I18n.t('levels.locked'):I18n.t('levels.soon'));
       tile.innerHTML=`<span class="state">${state}</span><span class="n">${String(level.id).padStart(2,'0')}</span><span class="tier">${I18n.t('level.'+level.tier)}</span>`;
       if(playable) tile.addEventListener('click',()=>{ levelsScreen.classList.remove('active'); beginGame(); });
       levelsGrid.appendChild(tile);
