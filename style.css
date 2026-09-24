@@ -197,3 +197,9 @@ body.game-running .overlay:not(.active){display:none}
   .panel,.menu-shell,.levels-panel{box-shadow:none}
   .time-card,.best-card{backdrop-filter:none;-webkit-backdrop-filter:none}
 }
+
+
+/* Frame pacing */
+#stickKnob{will-change:transform;transform:translate3d(0,0,0)}
+#game{will-change:contents}
+body.game-running #hud{contain:layout paint style}
