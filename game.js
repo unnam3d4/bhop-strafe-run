@@ -25,6 +25,9 @@
   const deathRestartBtn = $('#deathRestartBtn'), deathMenuBtn = $('#deathMenuBtn');
   const finishMenuBtn = $('#finishMenuBtn'), pauseMenuBtn = $('#pauseMenuBtn');
   const menuBest = $('#menuBest'), menuRuns = $('#menuRuns'), saveStatus = $('#saveStatus');
+  const levelsScreen = $('#levelsScreen'), levelsBtn = $('#levelsBtn'), levelsCloseBtn = $('#levelsCloseBtn'), levelsBackBtn = $('#levelsBackBtn');
+  const levelsGrid = $('#levelsGrid'), levelsProgressText = $('#levelsProgressText'), levelProgressBadge = $('#levelProgressBadge');
+  const soundToggle = $('#soundToggle'), langRuBtn = $('#langRuBtn'), langEnBtn = $('#langEnBtn');
 
   const isTouch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
 
@@ -196,7 +199,7 @@
     player.x=spawn.x;player.y=spawn.y;player.z=spawn.z;player.vx=player.vy=player.vz=0;player.yaw=spawn.yaw;player.pitch=0;player.onGround=false;
     finished=false;runStarted=false;runStartPerf=performance.now();accumulatedPause=0;checkpoint=0;finishCooldown=.5;
     checkpointRespawn={x:spawn.x,y:spawn.y,z:spawn.z,yaw:spawn.yaw};
-    timerEl.textContent='00:00.000';speedEl.textContent='0';cpLabel.textContent='СТАРТ';cpFill.style.width='0%';recordBadge.classList.add('hidden');
+    timerEl.textContent='00:00.000';speedEl.textContent='0';cpLabel.textContent=I18n.t('hud.start');cpFill.style.width='0%';recordBadge.classList.add('hidden');
     if(startNow){paused=false;started=true;hud.classList.add('ready');YandexBridge.gameplayStart();}
   }
 
@@ -267,6 +270,7 @@
     if(player.onGround){
       if(jump){
         player.vy=8.55; player.onGround=false; // Slightly higher tutorial jump for forgiving Level 1 landings.
+        GameSound.jump();
         if(wish.m>0) accelerate(wish.x,wish.z,7.2,16,dt);
       } else {
         applyFriction(dt);
@@ -298,7 +302,8 @@
       if(checkpoint>0 && checkpoint<=checkpointSpawns.length) checkpointRespawn={...checkpointSpawns[checkpoint-1]};
       const pct=Math.min(100,(checkpoint/cps.length)*100);
       cpFill.style.width=pct+'%';
-      cpLabel.textContent=checkpoint>=cps.length?'ФИНИШ':`ЧЕКПОИНТ ${checkpoint}/${cps.length}`;
+      cpLabel.textContent=checkpoint>=cps.length?I18n.t('hud.finish'):I18n.t('hud.checkpoint',{n:checkpoint,total:cps.length});
+      if(checkpoint>0) GameSound.checkpoint();
     }
     if(player.z>111 && player.y>2 && !finished && finishCooldown<=0) finishRun();
   }
@@ -328,15 +333,36 @@
   function updateMenuStats(){
     menuBest.textContent=formatTime(bestMs);
     menuRuns.textContent=String(Math.max(0,Number(progress.completedRuns)||0));
-    saveStatus.textContent=YandexBridge.isYandex()
-      ? 'Прогресс сохраняется через Яндекс Игры'
-      : 'Прогресс сохраняется на этом устройстве';
+    saveStatus.textContent=YandexBridge.isYandex()?I18n.t('menu.save.cloud'):I18n.t('menu.save.local');
+    const open=Math.max(1,Math.min(LevelCatalog.total,Number(progress.unlockedLevel)||1));
+    levelProgressBadge.textContent=`${open}/${LevelCatalog.total}`;
+    levelsProgressText.textContent=I18n.t('levels.progress',{open,total:LevelCatalog.total});
+  }
+
+  function renderLevels(){
+    const open=Math.max(1,Math.min(LevelCatalog.total,Number(progress.unlockedLevel)||1));
+    levelsGrid.innerHTML='';
+    for(const level of LevelCatalog.levels){
+      const unlocked=level.id<=open;
+      const playable=level.implemented && unlocked;
+      const tile=document.createElement('button');
+      tile.type='button';
+      tile.className='level-tile'+(level.id===1?' active':'');
+      tile.disabled=!playable;
+      tile.dataset.level=String(level.id);
+      const state=playable?'PLAY':(level.implemented?I18n.t('levels.locked'):I18n.t('levels.soon'));
+      tile.innerHTML=`<span class="state">${state}</span><span class="n">${String(level.id).padStart(2,'0')}</span><span class="tier">${I18n.t('level.'+level.tier)}</span>`;
+      if(playable) tile.addEventListener('click',()=>{ levelsScreen.classList.remove('active'); beginGame(); });
+      levelsGrid.appendChild(tile);
+    }
+    updateMenuStats();
   }
 
   function failRun(){
     if(paused||finished)return;
     paused=true;
     pauseStarted=performance.now();
+    GameSound.fail();
     YandexBridge.gameplayStop();
     deathScreen.classList.add('active');
     const canReward=checkpoint>0 && YandexBridge.isYandex();
@@ -365,11 +391,13 @@
   async function finishRun(){
     finished=true;paused=true;YandexBridge.gameplayStop();
     const ms=currentRunMs();timerEl.textContent=formatTime(ms);finishTimeEl.textContent=formatTime(ms);
+    GameSound.finish();
     const isRecord=!bestMs||ms<bestMs;
     if(isRecord){
       bestMs=ms;
       bestEl.textContent=formatTime(bestMs);
       recordBadge.classList.remove('hidden');
+      GameSound.record();
     } else {
       recordBadge.classList.add('hidden');
     }
@@ -408,6 +436,7 @@
     }catch(_){}
   }
   async function beginGame(){
+    GameSound.unlock();
     enterMobileFullscreen();
     startScreen.classList.remove('active');finishScreen.classList.remove('active');pauseScreen.classList.remove('active');settingsScreen.classList.remove('active');deathScreen.classList.remove('active');
     await YandexBridge.hideSticky();
@@ -421,6 +450,7 @@
     resetPlayer(false);
     hud.classList.remove('ready');
     updateMenuStats();
+    renderLevels();
     startScreen.classList.add('active');
     YandexBridge.showSticky();
     if(document.pointerLockElement===canvas)document.exitPointerLock();
@@ -437,12 +467,17 @@
     sensitivityValue.value=settings.sensitivity.toFixed(2)+'×';
     sensitivityValue.textContent=sensitivityValue.value;
     invertYToggle.checked=!!settings.invertY;
+    soundToggle.checked=settings.sound!==false;
+    const current=I18n.get();
+    langRuBtn.classList.toggle('active',current==='ru');
+    langEnBtn.classList.toggle('active',current==='en');
   }
   function openSettings(from='menu'){
     settingsReturn=from;
     syncSettingsUI();
     startScreen.classList.remove('active');
     pauseScreen.classList.remove('active');
+    levelsScreen.classList.remove('active');
     settingsScreen.classList.add('active');
     YandexBridge.showSticky();
     if(started)YandexBridge.gameplayStop();
@@ -450,8 +485,22 @@
   function closeSettings(){
     settingsScreen.classList.remove('active');
     settings=GameSettings.get();
+    updateMenuStats();
+    renderLevels();
     if(settingsReturn==='pause'&&started&&!finished) pauseScreen.classList.add('active');
     else startScreen.classList.add('active');
+  }
+
+  function openLevels(){
+    renderLevels();
+    startScreen.classList.remove('active');
+    settingsScreen.classList.remove('active');
+    levelsScreen.classList.add('active');
+    YandexBridge.showSticky();
+  }
+  function closeLevels(){
+    levelsScreen.classList.remove('active');
+    startScreen.classList.add('active');
   }
 
   playBtn.addEventListener('click',beginGame);
@@ -465,6 +514,9 @@
   pauseBtn.addEventListener('click',()=>pauseGame());
   pauseRestartBtn.addEventListener('click',restartFromResult);
   pauseMenuBtn.addEventListener('click',showMainMenu);
+  levelsBtn.addEventListener('click',openLevels);
+  levelsCloseBtn.addEventListener('click',closeLevels);
+  levelsBackBtn.addEventListener('click',closeLevels);
   settingsBtn.addEventListener('click',()=>openSettings('menu'));
   pauseSettingsBtn.addEventListener('click',()=>openSettings('pause'));
   settingsCloseBtn.addEventListener('click',closeSettings);
@@ -476,7 +528,28 @@
     GameSettings.set({invertY:invertYToggle.checked});
     syncSettingsUI();
   });
+  soundToggle.addEventListener('change',()=>{
+    GameSettings.set({sound:soundToggle.checked});
+    if(soundToggle.checked) GameSound.click();
+    syncSettingsUI();
+  });
+  langRuBtn.addEventListener('click',()=>{
+    I18n.set('ru');
+    syncSettingsUI();updateMenuStats();renderLevels();GameSound.click();
+  });
+  langEnBtn.addEventListener('click',()=>{
+    I18n.set('en');
+    syncSettingsUI();updateMenuStats();renderLevels();GameSound.click();
+  });
   addEventListener('bhop-settings-changed',()=>{settings=GameSettings.get();});
+  addEventListener('bhop-language-applied',()=>{
+    updateMenuStats();
+    renderLevels();
+    if(!runStarted)cpLabel.textContent=I18n.t('hud.start');
+  });
+  document.addEventListener('pointerdown',e=>{
+    if(e.target.closest('button') && !e.target.closest('#jumpBtn')) GameSound.click();
+  },{passive:true});
 
   document.addEventListener('keydown',(e)=>{
     keys[e.code]=true;
@@ -538,20 +611,22 @@
   }
 
   async function boot(){
-    bootFill.style.width='18%';bootText.textContent='ИНИЦИАЛИЗАЦИЯ';
+    bootFill.style.width='18%';bootText.textContent='INITIALIZING';
     await YandexBridge.init();
-    bootFill.style.width='52%';bootText.textContent='ЗАГРУЗКА ПРОГРЕССА';
+    I18n.init(YandexBridge.getPlatformLanguage());
+    bootText.textContent=I18n.t('boot.init');
+    bootFill.style.width='52%';bootText.textContent=I18n.t('boot.progress');
     progress=await YandexBridge.loadProgress();
     bestMs=progress.bestTimeMs;
     bestEl.textContent=formatTime(bestMs);
     syncSettingsUI();
     resetPlayer(false);
-    bootFill.style.width='82%';bootText.textContent='ПОДГОТОВКА УРОВНЯ';
+    bootFill.style.width='82%';bootText.textContent=I18n.t('boot.level');
     requestAnimationFrame(loop);
     await new Promise(resolve=>requestAnimationFrame(resolve));
     updateMenuStats();
     startScreen.classList.add('active');
-    bootFill.style.width='100%';bootText.textContent='ГОТОВО';
+    bootFill.style.width='100%';bootText.textContent=I18n.t('boot.ready');
     bootScreen.classList.add('done');
     await new Promise(resolve=>setTimeout(resolve,300));
     await YandexBridge.gameReady();
