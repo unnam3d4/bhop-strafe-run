@@ -120,7 +120,9 @@
   gl.uniform1f(loc.uNear,.05); gl.uniform1f(loc.uFar,140); gl.uniform3fv(loc.uFog,fog); gl.uniform1f(loc.uTanHalf,Math.tan(76*Math.PI/360));
 
   function resize(){
-    const dpr = Math.min(devicePixelRatio || 1, isTouch ? 1.5 : 2);
+    // Mobile browsers often become fill-rate bound on high-DPI screens.
+    // 1.0 DPR keeps gameplay responsive; desktop keeps a modest quality bump.
+    const dpr = Math.min(devicePixelRatio || 1, isTouch ? 1 : 1.5);
     const w = Math.max(1, Math.floor(innerWidth*dpr)), h = Math.max(1, Math.floor(innerHeight*dpr));
     if (canvas.width!==w || canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}
     gl.uniform1f(loc.uAspect,w/h);
@@ -223,20 +225,22 @@
     return {x:wx,z:wz,m:len};
   }
 
-  const solidBoxes = () => boxes.filter(b=>b.solid);
+  // Course geometry is static. Cache colliders once instead of allocating
+  // a filtered array several times on every physics tick.
+  const solidBoxes = boxes.filter(b=>b.solid);
   function overlapXZ(b,x,z,r=player.r){return x+r>b.x-b.sx/2 && x-r<b.x+b.sx/2 && z+r>b.z-b.sz/2 && z-r<b.z+b.sz/2}
   function verticalOverlap(b,y){const bottom=b.y-b.sy/2,top=b.y+b.sy/2;return y<top-.03 && y+player.h>bottom+.05}
 
   function moveHorizontal(dt){
     let nx=player.x+player.vx*dt, nz=player.z;
-    for(const b of solidBoxes()){
+    for(const b of solidBoxes){
       if(overlapXZ(b,nx,nz)&&verticalOverlap(b,player.y)){
         if(player.vx>0) nx=b.x-b.sx/2-player.r; else if(player.vx<0) nx=b.x+b.sx/2+player.r;
         player.vx=0;
       }
     }
     player.x=nx; nz=player.z+player.vz*dt;
-    for(const b of solidBoxes()){
+    for(const b of solidBoxes){
       if(overlapXZ(b,player.x,nz)&&verticalOverlap(b,player.y)){
         if(player.vz>0) nz=b.z-b.sz/2-player.r; else if(player.vz<0) nz=b.z+b.sz/2+player.r;
         player.vz=0;
@@ -249,14 +253,14 @@
     const prev=player.y; player.vy-=18.8*dt; player.y+=player.vy*dt; player.onGround=false;
     if(player.vy<=0){
       let bestTop=-Infinity;
-      for(const b of solidBoxes()){
+      for(const b of solidBoxes){
         if(!overlapXZ(b,player.x,player.z,player.r*.72))continue;
         const top=b.y+b.sy/2;
         if(prev>=top-.09 && player.y<=top+.02 && top>bestTop)bestTop=top;
       }
       if(bestTop>-Infinity){player.y=bestTop;player.vy=0;player.onGround=true;}
     } else {
-      for(const b of solidBoxes()){
+      for(const b of solidBoxes){
         if(!overlapXZ(b,player.x,player.z,player.r*.7))continue;
         const bottom=b.y-b.sy/2;
         if(prev+player.h<=bottom+.06 && player.y+player.h>=bottom){player.y=bottom-player.h-.02;player.vy=0;break;}
@@ -325,9 +329,17 @@
 
   // ---------- Run state ----------
   function currentRunMs(){return !runStarted?0:performance.now()-runStartPerf-accumulatedPause}
-  function updateHud(){
-    if(runStarted&&!finished&&!paused)timerEl.textContent=formatTime(currentRunMs());
-    speedEl.textContent=String(Math.round(horizontalSpeed()*40));
+  let lastHudTime=-1, lastHudSpeed=-1, lastHudPaint=0;
+  function updateHud(now=performance.now()){
+    // DOM text updates are capped to ~30 Hz. Rendering/physics remain independent.
+    if(now-lastHudPaint<33)return;
+    lastHudPaint=now;
+    if(runStarted&&!finished&&!paused){
+      const shown=Math.floor(currentRunMs());
+      if(shown!==lastHudTime){lastHudTime=shown;timerEl.textContent=formatTime(shown);}
+    }
+    const shownSpeed=Math.round(horizontalSpeed()*40);
+    if(shownSpeed!==lastHudSpeed){lastHudSpeed=shownSpeed;speedEl.textContent=String(shownSpeed);}
   }
 
   function updateMenuStats(){
@@ -436,6 +448,7 @@
     }catch(_){}
   }
   async function beginGame(){
+    document.body.classList.add('game-running');
     GameSound.unlock();
     enterMobileFullscreen();
     startScreen.classList.remove('active');finishScreen.classList.remove('active');pauseScreen.classList.remove('active');settingsScreen.classList.remove('active');deathScreen.classList.remove('active');
@@ -444,6 +457,7 @@
     if(!isTouch)canvas.requestPointerLock?.();
   }
   function showMainMenu(){
+    document.body.classList.remove('game-running');
     paused=true;started=false;finished=false;runStarted=false;
     YandexBridge.gameplayStop();
     finishScreen.classList.remove('active');pauseScreen.classList.remove('active');settingsScreen.classList.remove('active');deathScreen.classList.remove('active');
@@ -603,11 +617,16 @@
   jumpBtn.addEventListener('pointerdown',e=>{mobileJump=true;jumpBtn.setPointerCapture(e.pointerId)});jumpBtn.addEventListener('pointerup',()=>mobileJump=false);jumpBtn.addEventListener('pointercancel',()=>mobileJump=false);
 
   // ---------- Fixed-step loop ----------
-  let last=performance.now(),acc=0;const step=1/120;
+  let last=performance.now(),acc=0;
+  const physicsHz=isTouch?60:90;
+  const step=1/physicsHz;
   function loop(now){
     let dt=Math.min(.05,(now-last)/1000);last=now;acc+=dt;
-    while(acc>=step){physics(step);acc-=step;}
-    render(now);updateHud();requestAnimationFrame(loop);
+    let iterations=0;
+    while(acc>=step && iterations<5){physics(step);acc-=step;iterations++;}
+    // Never let a slow frame trigger a long catch-up spiral.
+    if(iterations===5 && acc>=step)acc=0;
+    render(now);updateHud(now);requestAnimationFrame(loop);
   }
 
   async function boot(){
