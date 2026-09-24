@@ -2,8 +2,9 @@
   'use strict';
 
   const $ = (s) => document.querySelector(s);
+  const isTouch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
   const canvas = $('#game');
-  const gl = canvas.getContext('webgl', { antialias: true, alpha: false, powerPreference: 'high-performance' });
+  const gl = canvas.getContext('webgl', { antialias: !isTouch, alpha: false, powerPreference: 'high-performance' });
   const fatal = $('#fatal');
   const bootScreen = $('#bootScreen'), bootFill = $('#bootFill'), bootText = $('#bootText');
   if (!gl) {
@@ -28,8 +29,6 @@
   const levelsScreen = $('#levelsScreen'), levelsBtn = $('#levelsBtn'), levelsCloseBtn = $('#levelsCloseBtn'), levelsBackBtn = $('#levelsBackBtn');
   const levelsGrid = $('#levelsGrid'), levelsProgressText = $('#levelsProgressText'), levelProgressBadge = $('#levelProgressBadge');
   const soundToggle = $('#soundToggle'), langRuBtn = $('#langRuBtn'), langEnBtn = $('#langEnBtn');
-
-  const isTouch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
 
   const formatTime = (ms) => {
     if (!Number.isFinite(ms)) return '--:--.---';
@@ -323,8 +322,11 @@
     let up=[-sy*sp,cp,-cy*sp];
     gl.clearColor(...fog,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     gl.uniform3fv(loc.uCamPos,eye);gl.uniform3fv(loc.uCamForward,forward);gl.uniform3fv(loc.uCamRight,right);gl.uniform3fv(loc.uCamUp,up);
-    // Farther objects first isn't necessary with depth testing, but drawing course before decoration keeps debugging predictable.
-    for(const b of boxes)drawBox(b);
+    // Decorative towers are expensive draw calls on phones and are not gameplay geometry.
+    for(const b of boxes){
+      if(isTouch && b.tag==='deco')continue;
+      drawBox(b);
+    }
   }
 
   // ---------- Run state ----------
