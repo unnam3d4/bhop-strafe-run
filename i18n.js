@@ -18,7 +18,7 @@
       "death.title":"СРЫВ","death.heading":"Трасса не прощает ошибок","death.copy":"Начни забег заново или продолжи с последней контрольной точки после добровольного просмотра рекламы.",
       "death.reward":"ПРОДОЛЖИТЬ С ЧЕКПОИНТА","death.ad":"РЕКЛАМА","death.note":"Продолжение выдаётся только после успешного просмотра рекламы.",
       "finish.title":"ФИНИШ","finish.heading":"Трасса пройдена","finish.record":"НОВЫЙ РЕКОРД","finish.again":"ЕЩЁ РАЗ",
-      "levels.title":"УРОВНИ","levels.subtitle":"КАРЬЕРА BHOP","levels.progress":"Открыто {open} из {total}","levels.back":"НАЗАД","levels.locked":"ЗАКРЫТО","levels.soon":"СКОРО",
+      "levels.title":"УРОВНИ","levels.subtitle":"КАРЬЕРА BHOP","levels.progress":"Открыто {open} из {total}","levels.back":"НАЗАД","levels.play":"ИГРАТЬ","levels.locked":"ЗАКРЫТО","levels.soon":"СКОРО","mobile.jump":"ПРЫЖОК",
       "level.tutorial":"Обучение","level.speed":"Скорость","level.strafe":"Стрейф","level.precision":"Точность","level.flow":"Поток","level.hard":"Эксперт"
     },
     en: {
@@ -39,7 +39,7 @@
       "death.title":"FAILED","death.heading":"The course punishes mistakes","death.copy":"Restart the run or continue from your latest checkpoint after an optional rewarded ad.",
       "death.reward":"CONTINUE FROM CHECKPOINT","death.ad":"AD","death.note":"The continue is granted only after the rewarded ad is successfully watched.",
       "finish.title":"FINISH","finish.heading":"Course complete","finish.record":"NEW RECORD","finish.again":"RUN AGAIN",
-      "levels.title":"LEVELS","levels.subtitle":"BHOP CAREER","levels.progress":"Unlocked {open} of {total}","levels.back":"BACK","levels.locked":"LOCKED","levels.soon":"COMING SOON",
+      "levels.title":"LEVELS","levels.subtitle":"BHOP CAREER","levels.progress":"Unlocked {open} of {total}","levels.back":"BACK","levels.play":"PLAY","levels.locked":"LOCKED","levels.soon":"COMING SOON","mobile.jump":"JUMP",
       "level.tutorial":"Tutorial","level.speed":"Speed","level.strafe":"Strafe","level.precision":"Precision","level.flow":"Flow","level.hard":"Expert"
     }
   };
