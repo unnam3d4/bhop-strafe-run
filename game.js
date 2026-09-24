@@ -512,7 +512,7 @@
   deathMenuBtn.addEventListener('click',showMainMenu);
   restartBtn.addEventListener('click',()=>resetPlayer(true));
   pauseBtn.addEventListener('click',()=>pauseGame());
-  pauseRestartBtn.addEventListener('click',restartFromResult);
+  pauseRestartBtn.addEventListener('click',beginGame);
   pauseMenuBtn.addEventListener('click',showMainMenu);
   levelsBtn.addEventListener('click',openLevels);
   levelsCloseBtn.addEventListener('click',closeLevels);
