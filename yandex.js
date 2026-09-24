@@ -117,20 +117,68 @@
     if (!sdkReady || !ysdk?.adv?.showFullscreenAdv) return false;
     gameplayStop();
     return new Promise(resolve => {
+      let settled = false;
+      const done = value => { if (!settled) { settled = true; resolve(value); } };
       try {
         ysdk.adv.showFullscreenAdv({
           callbacks: {
-            onClose: () => resolve(true),
+            onOpen: () => gameplayStop(),
+            onClose: wasShown => done(!!wasShown),
             onError: err => {
               console.warn('[Yandex] fullscreen ad error', err);
-              resolve(false);
+              done(false);
             }
           }
         });
       } catch (_) {
-        resolve(false);
+        done(false);
       }
     });
+  }
+
+  async function showRewarded() {
+    if (!sdkReady || !ysdk?.adv?.showRewardedVideo) return false;
+    gameplayStop();
+    return new Promise(resolve => {
+      let rewarded = false;
+      let settled = false;
+      const done = () => { if (!settled) { settled = true; resolve(rewarded); } };
+      try {
+        ysdk.adv.showRewardedVideo({
+          callbacks: {
+            onOpen: () => gameplayStop(),
+            onRewarded: () => { rewarded = true; },
+            onClose: () => done(),
+            onError: err => {
+              console.warn('[Yandex] rewarded ad error', err);
+              done();
+            }
+          }
+        });
+      } catch (_) {
+        done();
+      }
+    });
+  }
+
+  async function showSticky() {
+    if (!sdkReady || !ysdk?.adv?.showBannerAdv) return false;
+    try {
+      const result = await ysdk.adv.showBannerAdv();
+      return !!result?.stickyAdvIsShowing;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  async function hideSticky() {
+    if (!sdkReady || !ysdk?.adv?.hideBannerAdv) return false;
+    try {
+      const result = await ysdk.adv.hideBannerAdv();
+      return !result?.stickyAdvIsShowing;
+    } catch (_) {
+      return false;
+    }
   }
 
   function isYandex() { return sdkReady; }
@@ -138,6 +186,6 @@
   window.YandexBridge = {
     init, gameReady, gameplayStart, gameplayStop,
     loadProgress, saveProgress, loadBest, saveBest,
-    showFullscreen, isYandex
+    showFullscreen, showRewarded, showSticky, hideSticky, isYandex
   };
 })();
