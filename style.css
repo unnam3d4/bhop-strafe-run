@@ -24,3 +24,27 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;background:rad
 .fatal{position:fixed;z-index:100;inset:20px auto auto 20px;max-width:540px;background:#19070b;color:#ffd9df;border:1px solid #7f2431;padding:14px 16px;font:13px ui-monospace,monospace;white-space:pre-wrap}
 @media (max-width:760px){.hud-top{grid-template-columns:1fr auto}.brand b{display:none}.best-card{display:none}.time-card{min-width:110px}.checkpoint{top:70px;width:54vw}.controls{grid-template-columns:1fr}.hero{padding:28px}.hero h1{font-size:60px}.lead{font-size:13px}.speedbox{bottom:34px}.speedbox strong{font-size:34px}.icon-btn{top:78px;bottom:auto;right:12px}.icon-btn.second{right:62px}.crosshair{opacity:.72}}
 @media (pointer:coarse),(max-width:900px){#mobileControls{display:block}.speedbox{bottom:max(136px,env(safe-area-inset-bottom))}.icon-btn{display:none}.controls div:nth-child(3),.controls div:nth-child(4){display:none}}
+
+
+/* Production boot / settings */
+.boot-screen{position:fixed;inset:0;z-index:80;display:grid;place-items:center;align-content:center;gap:18px;background:#080b10;transition:opacity .28s,visibility .28s}
+.boot-screen.done{opacity:0;visibility:hidden;pointer-events:none}
+.boot-logo{display:flex;align-items:center;gap:12px;font-weight:950;letter-spacing:.08em}
+.boot-logo b{display:grid;place-items:center;width:38px;height:38px;background:var(--acid);color:#071005;clip-path:polygon(0 0,82% 0,100% 50%,82% 100%,0 100%)}
+.boot-logo span{font-size:13px}
+.boot-track{width:min(320px,72vw);height:3px;background:rgba(255,255,255,.1);overflow:hidden}
+.boot-track i{display:block;width:8%;height:100%;background:var(--acid);box-shadow:0 0 14px rgba(215,255,47,.5);transition:width .28s ease}
+.boot-screen small{font-size:9px;letter-spacing:.2em;color:var(--muted)}
+.menu-actions{display:grid;grid-template-columns:1fr .44fr;gap:10px}
+.menu-actions .ghost{margin-top:0}
+.settings-panel{text-align:left}
+.settings-panel h2{margin-bottom:26px}
+.setting-row,.setting-toggle{display:flex;justify-content:space-between;align-items:center;gap:20px;border-top:1px solid var(--line);padding:16px 0}
+.setting-row span,.setting-toggle span{display:flex;flex-direction:column;gap:4px}
+.setting-row b,.setting-toggle b{font-size:12px;letter-spacing:.02em}
+.setting-row small,.setting-toggle small{font-size:10px;color:var(--muted)}
+.setting-row output{font:800 13px ui-monospace,monospace;color:var(--acid)}
+#sensitivityRange{width:100%;accent-color:var(--acid);margin:0 0 18px}
+.setting-toggle input{width:20px;height:20px;accent-color:var(--acid)}
+.settings-panel .primary{margin-top:18px}
+@media(max-width:560px){.menu-actions{grid-template-columns:1fr}.menu-actions .ghost{height:46px}}
