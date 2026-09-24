@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#080b10" />
+  <title>BHOP: STRAFE RUN</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Recommended path when the archive is hosted by Yandex Games. -->
+  <script src="/sdk.js"></script>
+</head>
+<body>
+  <canvas id="game" aria-label="BHOP: STRAFE RUN"></canvas>
+
+  <div id="hud" class="hidden-ui">
+    <div class="hud-top">
+      <div class="brand"><span class="brand-mark">B</span><span>BHOP</span><b>STRAFE RUN</b></div>
+      <div class="time-card"><small>ВРЕМЯ</small><strong id="timer">00:00.000</strong></div>
+      <div class="best-card"><small>ЛУЧШЕЕ</small><strong id="best">--:--.---</strong></div>
+    </div>
+
+    <div class="checkpoint"><span id="cpLabel">START</span><div class="cpbar"><i id="cpFill"></i></div></div>
+    <div class="crosshair"><i></i><b></b></div>
+
+    <div class="speedbox">
+      <strong id="speed">0</strong><span>u/s</span>
+      <small id="speedHint">держи SPACE + A/D</small>
+    </div>
+
+    <button id="restartBtn" class="icon-btn" aria-label="Рестарт" title="Рестарт (R)">↻</button>
+    <button id="pauseBtn" class="icon-btn second" aria-label="Пауза" title="Пауза (P)">Ⅱ</button>
+  </div>
+
+  <div id="startScreen" class="overlay active">
+    <div class="panel hero">
+      <div class="eyebrow">УРОВЕНЬ 1 · ОБУЧЕНИЕ BHOP</div>
+      <h1>BHOP<span>:</span><br>STRAFE RUN</h1>
+      <p class="lead">Первый уровень — тренировочный: широкие платформы, короткие прыжки и мягкие повороты. Удерживай SPACE и понемногу добавляй A/D в полёте.</p>
+      <div class="controls">
+        <div><kbd>W A S D</kbd><span>движение</span></div>
+        <div><kbd>SPACE</kbd><span>удерживать для bhop</span></div>
+        <div><kbd>МЫШЬ</kbd><span>обзор + air-strafe</span></div>
+        <div><kbd>R</kbd><span>быстрый рестарт</span></div>
+      </div>
+      <button id="playBtn" class="primary">ИГРАТЬ</button>
+      <p class="micro">Без оружия и чужих ассетов — оригинальный bhop time-trial в духе классических FPS-карт.</p>
+    </div>
+  </div>
+
+  <div id="pauseScreen" class="overlay">
+    <div class="panel compact">
+      <div class="eyebrow">ПАУЗА</div>
+      <h2>Забег остановлен</h2>
+      <button id="resumeBtn" class="primary">ПРОДОЛЖИТЬ</button>
+      <button id="pauseRestartBtn" class="ghost">НАЧАТЬ ЗАНОВО</button>
+    </div>
+  </div>
+
+  <div id="finishScreen" class="overlay">
+    <div class="panel compact finish">
+      <div class="eyebrow">ФИНИШ</div>
+      <h2 id="finishTitle">Трасса пройдена</h2>
+      <div class="finish-time" id="finishTime">00:00.000</div>
+      <div id="recordBadge" class="record hidden">НОВЫЙ РЕКОРД</div>
+      <button id="againBtn" class="primary">ЕЩЁ РАЗ</button>
+    </div>
+  </div>
+
+  <div id="mobileControls" aria-hidden="true">
+    <div id="stickBase" class="stick"><i id="stickKnob"></i></div>
+    <div id="lookZone"></div>
+    <button id="jumpBtn">JUMP</button>
+  </div>
+
+  <div id="fatal" class="fatal hidden"></div>
+
+  <script src="yandex.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
