@@ -8,11 +8,17 @@
   <meta name="theme-color" content="#080b10" />
   <title>BHOP: STRAFE RUN</title>
   <link rel="stylesheet" href="style.css" />
-  <!-- Recommended path when the archive is hosted by Yandex Games. -->
+  <!-- Yandex Games SDK: relative root path is required for uploaded archives. -->
   <script src="/sdk.js"></script>
 </head>
 <body>
   <canvas id="game" aria-label="BHOP: STRAFE RUN"></canvas>
+
+  <div id="bootScreen" class="boot-screen">
+    <div class="boot-logo"><b>B</b><span>BHOP: STRAFE RUN</span></div>
+    <div class="boot-track"><i id="bootFill"></i></div>
+    <small id="bootText">ЗАГРУЗКА ИГРЫ</small>
+  </div>
 
   <div id="hud" class="hidden-ui">
     <div class="hud-top">
@@ -33,7 +39,7 @@
     <button id="pauseBtn" class="icon-btn second" aria-label="Пауза" title="Пауза (P)">Ⅱ</button>
   </div>
 
-  <div id="startScreen" class="overlay active">
+  <div id="startScreen" class="overlay">
     <div class="panel hero">
       <div class="eyebrow">УРОВЕНЬ 1 · ОБУЧЕНИЕ BHOP</div>
       <h1>BHOP<span>:</span><br>STRAFE RUN</h1>
@@ -44,8 +50,28 @@
         <div><kbd>МЫШЬ</kbd><span>обзор + air-strafe</span></div>
         <div><kbd>R</kbd><span>быстрый рестарт</span></div>
       </div>
-      <button id="playBtn" class="primary">ИГРАТЬ</button>
-      <p class="micro">Без оружия и чужих ассетов — оригинальный bhop time-trial в духе классических FPS-карт.</p>
+      <div class="menu-actions">
+        <button id="playBtn" class="primary">ИГРАТЬ</button>
+        <button id="settingsBtn" class="ghost">НАСТРОЙКИ</button>
+      </div>
+      <p class="micro">Оригинальный HTML5/WebGL time-trial. Прогресс сохраняется автоматически.</p>
+    </div>
+  </div>
+
+  <div id="settingsScreen" class="overlay">
+    <div class="panel compact settings-panel">
+      <div class="eyebrow">НАСТРОЙКИ</div>
+      <h2>Управление</h2>
+      <label class="setting-row">
+        <span><b>Чувствительность мыши</b><small>Скорость поворота камеры</small></span>
+        <output id="sensitivityValue">1.00×</output>
+      </label>
+      <input id="sensitivityRange" type="range" min="0.55" max="1.75" step="0.05" value="1" />
+      <label class="setting-toggle">
+        <span><b>Инверсия Y</b><small>Вертикальное движение камеры</small></span>
+        <input id="invertYToggle" type="checkbox" />
+      </label>
+      <button id="settingsCloseBtn" class="primary">ГОТОВО</button>
     </div>
   </div>
 
@@ -55,6 +81,7 @@
       <h2>Забег остановлен</h2>
       <button id="resumeBtn" class="primary">ПРОДОЛЖИТЬ</button>
       <button id="pauseRestartBtn" class="ghost">НАЧАТЬ ЗАНОВО</button>
+      <button id="pauseSettingsBtn" class="ghost">НАСТРОЙКИ</button>
     </div>
   </div>
 
@@ -76,6 +103,7 @@
 
   <div id="fatal" class="fatal hidden"></div>
 
+  <script src="settings.js"></script>
   <script src="yandex.js"></script>
   <script src="game.js"></script>
 </body>
