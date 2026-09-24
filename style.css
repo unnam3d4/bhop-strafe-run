@@ -185,3 +185,15 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;background:rad
   .level-tile .n{font-size:24px}
   .level-tile .tier{margin-top:8px}
 }
+
+
+/* Performance pass */
+.overlay{visibility:hidden;backdrop-filter:none;-webkit-backdrop-filter:none}
+.overlay.active{visibility:visible;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+body.game-running:before{display:none}
+body.game-running .overlay:not(.active){display:none}
+@media(pointer:coarse){
+  .overlay.active{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(2,4,7,.68)}
+  .panel,.menu-shell,.levels-panel{box-shadow:none}
+  .time-card,.best-card{backdrop-filter:none;-webkit-backdrop-filter:none}
+}
