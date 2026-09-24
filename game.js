@@ -21,6 +21,10 @@
   const settingsScreen = $('#settingsScreen'), settingsBtn = $('#settingsBtn'), pauseSettingsBtn = $('#pauseSettingsBtn');
   const settingsCloseBtn = $('#settingsCloseBtn'), sensitivityRange = $('#sensitivityRange');
   const sensitivityValue = $('#sensitivityValue'), invertYToggle = $('#invertYToggle');
+  const deathScreen = $('#deathScreen'), rewardContinueBtn = $('#rewardContinueBtn'), rewardNote = $('#rewardNote');
+  const deathRestartBtn = $('#deathRestartBtn'), deathMenuBtn = $('#deathMenuBtn');
+  const finishMenuBtn = $('#finishMenuBtn'), pauseMenuBtn = $('#pauseMenuBtn');
+  const menuBest = $('#menuBest'), menuRuns = $('#menuRuns'), saveStatus = $('#saveStatus');
 
   const isTouch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
 
@@ -179,11 +183,20 @@
   let progress = { bestTimeMs: null, completedRuns: 0, unlockedLevel: 1 };
   let settings = GameSettings.get();
   let settingsReturn = 'menu';
+  let checkpointRespawn = { x:spawn.x, y:spawn.y, z:spawn.z, yaw:spawn.yaw };
+  const checkpointSpawns = [
+    {x:-0.8,y:1.90,z:17.0,yaw:0},
+    {x:-1.2,y:2.20,z:38.0,yaw:0},
+    {x:0.0,y:2.00,z:60.0,yaw:0},
+    {x:-1.6,y:2.55,z:82.0,yaw:0},
+    {x:0.0,y:2.25,z:103.0,yaw:0}
+  ];
 
   function resetPlayer(startNow=false){
     player.x=spawn.x;player.y=spawn.y;player.z=spawn.z;player.vx=player.vy=player.vz=0;player.yaw=spawn.yaw;player.pitch=0;player.onGround=false;
     finished=false;runStarted=false;runStartPerf=performance.now();accumulatedPause=0;checkpoint=0;finishCooldown=.5;
-    timerEl.textContent='00:00.000';speedEl.textContent='0';cpLabel.textContent='START';cpFill.style.width='0%';recordBadge.classList.add('hidden');
+    checkpointRespawn={x:spawn.x,y:spawn.y,z:spawn.z,yaw:spawn.yaw};
+    timerEl.textContent='00:00.000';speedEl.textContent='0';cpLabel.textContent='СТАРТ';cpFill.style.width='0%';recordBadge.classList.add('hidden');
     if(startNow){paused=false;started=true;hud.classList.add('ready');YandexBridge.gameplayStart();}
   }
 
@@ -275,12 +288,18 @@
     moveHorizontal(dt);moveVertical(dt);
 
     if(!runStarted && (horizontalSpeed()>.45 || player.vy>.1 || player.z>-3.2)) {runStarted=true;runStartPerf=performance.now();accumulatedPause=0;}
-    if(player.y<-8){resetPlayer(true);return;}
+    if(player.y<-8){failRun();return;}
     if(finishCooldown>0)finishCooldown-=dt;
 
     const cps=[18,39,61,83,104,111];
     let c=0; for(const z of cps) if(player.z>=z)c++;
-    if(c!==checkpoint){checkpoint=c;const pct=Math.min(100,(checkpoint/cps.length)*100);cpFill.style.width=pct+'%';cpLabel.textContent=checkpoint>=cps.length?'FINISH':`CHECKPOINT ${checkpoint}/${cps.length}`;}
+    if(c!==checkpoint){
+      checkpoint=c;
+      if(checkpoint>0 && checkpoint<=checkpointSpawns.length) checkpointRespawn={...checkpointSpawns[checkpoint-1]};
+      const pct=Math.min(100,(checkpoint/cps.length)*100);
+      cpFill.style.width=pct+'%';
+      cpLabel.textContent=checkpoint>=cps.length?'ФИНИШ':`ЧЕКПОИНТ ${checkpoint}/${cps.length}`;
+    }
     if(player.z>111 && player.y>2 && !finished && finishCooldown<=0) finishRun();
   }
 
@@ -305,6 +324,44 @@
     if(runStarted&&!finished&&!paused)timerEl.textContent=formatTime(currentRunMs());
     speedEl.textContent=String(Math.round(horizontalSpeed()*40));
   }
+
+  function updateMenuStats(){
+    menuBest.textContent=formatTime(bestMs);
+    menuRuns.textContent=String(Math.max(0,Number(progress.completedRuns)||0));
+    saveStatus.textContent=YandexBridge.isYandex()
+      ? 'Прогресс сохраняется через Яндекс Игры'
+      : 'Прогресс сохраняется на этом устройстве';
+  }
+
+  function failRun(){
+    if(paused||finished)return;
+    paused=true;
+    pauseStarted=performance.now();
+    YandexBridge.gameplayStop();
+    deathScreen.classList.add('active');
+    const canReward=checkpoint>0 && YandexBridge.isYandex();
+    rewardContinueBtn.classList.toggle('hidden',!canReward);
+    rewardNote.classList.toggle('hidden',!canReward);
+    YandexBridge.showSticky();
+    if(document.pointerLockElement===canvas)document.exitPointerLock();
+  }
+
+  async function continueFromCheckpoint(){
+    if(checkpoint<=0)return;
+    rewardContinueBtn.disabled=true;
+    const rewarded=await YandexBridge.showRewarded();
+    rewardContinueBtn.disabled=false;
+    if(!rewarded)return;
+    accumulatedPause+=performance.now()-pauseStarted;
+    player.x=checkpointRespawn.x;player.y=checkpointRespawn.y;player.z=checkpointRespawn.z;player.yaw=checkpointRespawn.yaw;
+    player.pitch=0;player.vx=player.vy=player.vz=0;player.onGround=false;
+    deathScreen.classList.remove('active');
+    paused=false;
+    await YandexBridge.hideSticky();
+    YandexBridge.gameplayStart();
+    if(!isTouch)canvas.requestPointerLock?.();
+  }
+
   async function finishRun(){
     finished=true;paused=true;YandexBridge.gameplayStop();
     const ms=currentRunMs();timerEl.textContent=formatTime(ms);finishTimeEl.textContent=formatTime(ms);
@@ -323,21 +380,54 @@
       completedRuns: progress.completedRuns,
       unlockedLevel: Math.max(1, Number(progress.unlockedLevel)||1)
     });
+    updateMenuStats();
     finishScreen.classList.add('active');
+    YandexBridge.showSticky();
     if(document.pointerLockElement===canvas)document.exitPointerLock();
   }
   function pauseGame(show=true){
-    if(!started||finished||paused)return;paused=true;pauseStarted=performance.now();YandexBridge.gameplayStop();
-    if(show)pauseScreen.classList.add('active');
+    if(!started||finished||paused)return;
+    paused=true;pauseStarted=performance.now();YandexBridge.gameplayStop();
+    if(show){pauseScreen.classList.add('active');YandexBridge.showSticky();}
     if(document.pointerLockElement===canvas)document.exitPointerLock();
   }
-  function resumeGame(){
-    if(finished)return;if(paused&&runStarted)accumulatedPause+=performance.now()-pauseStarted;paused=false;pauseScreen.classList.remove('active');YandexBridge.gameplayStart();
+  async function resumeGame(){
+    if(finished)return;
+    if(paused&&runStarted)accumulatedPause+=performance.now()-pauseStarted;
+    paused=false;pauseScreen.classList.remove('active');
+    await YandexBridge.hideSticky();
+    YandexBridge.gameplayStart();
     if(!isTouch)canvas.requestPointerLock?.();
   }
-  function beginGame(){
-    startScreen.classList.remove('active');finishScreen.classList.remove('active');pauseScreen.classList.remove('active');settingsScreen.classList.remove('active');resetPlayer(true);
+  function enterMobileFullscreen(){
+    if(!isTouch)return;
+    try{
+      if(!document.fullscreenElement)document.documentElement.requestFullscreen?.().catch(()=>{});
+      screen.orientation?.lock?.('landscape').catch(()=>{});
+    }catch(_){}
+  }
+  async function beginGame(){
+    enterMobileFullscreen();
+    startScreen.classList.remove('active');finishScreen.classList.remove('active');pauseScreen.classList.remove('active');settingsScreen.classList.remove('active');deathScreen.classList.remove('active');
+    await YandexBridge.hideSticky();
+    resetPlayer(true);
     if(!isTouch)canvas.requestPointerLock?.();
+  }
+  function showMainMenu(){
+    paused=true;started=false;finished=false;runStarted=false;
+    YandexBridge.gameplayStop();
+    finishScreen.classList.remove('active');pauseScreen.classList.remove('active');settingsScreen.classList.remove('active');deathScreen.classList.remove('active');
+    resetPlayer(false);
+    hud.classList.remove('ready');
+    updateMenuStats();
+    startScreen.classList.add('active');
+    YandexBridge.showSticky();
+    if(document.pointerLockElement===canvas)document.exitPointerLock();
+  }
+  async function restartFromResult(){
+    deathScreen.classList.remove('active');finishScreen.classList.remove('active');pauseScreen.classList.remove('active');
+    await YandexBridge.showFullscreen();
+    beginGame();
   }
 
   function syncSettingsUI(){
@@ -353,6 +443,7 @@
     startScreen.classList.remove('active');
     pauseScreen.classList.remove('active');
     settingsScreen.classList.add('active');
+    YandexBridge.showSticky();
     if(started)YandexBridge.gameplayStop();
   }
   function closeSettings(){
@@ -364,14 +455,15 @@
 
   playBtn.addEventListener('click',beginGame);
   resumeBtn.addEventListener('click',resumeGame);
-  againBtn.addEventListener('click',async()=>{
-    finishScreen.classList.remove('active');
-    if(progress.completedRuns>0 && progress.completedRuns%3===0) await YandexBridge.showFullscreen();
-    beginGame();
-  });
+  againBtn.addEventListener('click',restartFromResult);
+  finishMenuBtn.addEventListener('click',showMainMenu);
+  rewardContinueBtn.addEventListener('click',continueFromCheckpoint);
+  deathRestartBtn.addEventListener('click',restartFromResult);
+  deathMenuBtn.addEventListener('click',showMainMenu);
   restartBtn.addEventListener('click',()=>resetPlayer(true));
   pauseBtn.addEventListener('click',()=>pauseGame());
-  pauseRestartBtn.addEventListener('click',beginGame);
+  pauseRestartBtn.addEventListener('click',restartFromResult);
+  pauseMenuBtn.addEventListener('click',showMainMenu);
   settingsBtn.addEventListener('click',()=>openSettings('menu'));
   pauseSettingsBtn.addEventListener('click',()=>openSettings('pause'));
   settingsCloseBtn.addEventListener('click',closeSettings);
@@ -401,7 +493,15 @@
   document.addEventListener('pointerlockchange',()=>{
     if(!isTouch&&started&&!finished&&document.pointerLockElement!==canvas&&!paused)setTimeout(()=>pauseGame(),0);
   });
-  document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseGame(false);});
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){
+      pauseGame(false);
+    }else if(started&&!finished&&paused&&!settingsScreen.classList.contains('active')&&!deathScreen.classList.contains('active')){
+      pauseScreen.classList.add('active');
+      YandexBridge.showSticky();
+    }
+  });
+  window.addEventListener('blur',()=>pauseGame(false));
 
   // ---------- Mobile controls ----------
   const stickBase=$('#stickBase'),stickKnob=$('#stickKnob'),lookZone=$('#lookZone'),jumpBtn=$('#jumpBtn');
@@ -439,11 +539,13 @@
     bootFill.style.width='82%';bootText.textContent='ПОДГОТОВКА УРОВНЯ';
     requestAnimationFrame(loop);
     await new Promise(resolve=>requestAnimationFrame(resolve));
+    updateMenuStats();
     startScreen.classList.add('active');
     bootFill.style.width='100%';bootText.textContent='ГОТОВО';
     bootScreen.classList.add('done');
     await new Promise(resolve=>setTimeout(resolve,300));
     await YandexBridge.gameReady();
+    await YandexBridge.showSticky();
   }
   boot().catch(err=>{console.error(err);fatal.classList.remove('hidden');fatal.textContent=String(err?.stack||err)});
 })();
